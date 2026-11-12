@@ -23,5 +23,5 @@ window.VIDEO_LINKS = {
   u06: { youtube: "AZXSnC3yEzA", mp4: "", duration: "7:36", sections: [0, 98.7, 161.8, 224.9, 293.2, 386.7], noVoice: "" },
   u07: { youtube: "ayB8mBq8h34", mp4: "", duration: "6:17", sections: [0, 105.4, 199.7, 305.8], noVoice: "" },
   u08: { youtube: "", mp4: "", duration: "", sections: null, noVoice: "" },
-  u09: { youtube: "", mp4: "", duration: "", sections: null, noVoice: "" }
+  u09: { youtube: "aVmGu6wfuGA", mp4: "", duration: "8:48", sections: [0, 60.4, 164.6, 248.7, 370.8, 454.2], noVoice: "" }
 };
