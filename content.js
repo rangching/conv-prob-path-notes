@@ -189,9 +189,11 @@ window.UNITS = [
     tags: "隨機變數相加、獨立、多路徑加總",
     status: "planned", estDur: "約 5–6 分鐘", segWord: "小節",
     sections: [
-      { t: 0, title: "為什麼機器學習突然需要卷積？" },
-      { t: 90, title: "隨機變數相加實驗：X = Z + ε" },
-      { t: 225, title: "多重路徑加總＝卷積積分" }
+      { t: 0, title: "兩種做法，同一張圖" },
+      { t: 68.1, title: "熱身：兩顆骰子" },
+      { t: 157.8, title: "兩步驟抽樣：X＝Z＋ε" },
+      { t: 233.7, title: "所有路徑加總＝卷積" },
+      { t: 371.1, title: "驗證、邊界與下一站" }
     ],
     formula: R`p_X(x) = \int p_{\text{data}}(z)\, p_{\varepsilon}(x - z)\, dz`,
     pre: [
@@ -243,8 +245,11 @@ window.UNITS = [
     tags: "Conditional、Marginal、機率路徑",
     status: "planned", estDur: "約 4 分鐘", segWord: "小節",
     sections: [
-      { t: 0, title: "拋出懸疑問題" },
-      { t: 120, title: "思考線索：單點平移 vs. 積分融合" }
+      { t: 0, title: "拋出問題：z 固定，還要卷積嗎" },
+      { t: 77.9, title: "條件路徑長什麼樣" },
+      { t: 159, title: "線索一：∫dz 在加總誰" },
+      { t: 218.3, title: "線索二與陷阱" },
+      { t: 297.7, title: "線索三與留題" }
     ],
     formula: R`p_t(x\mid z_0) = \mathcal{N}(x;\ z_0,\ \sigma_t^2 I)`,
     pre: [
