@@ -80,10 +80,11 @@ window.UNITS = [
     tags: "棋盤格分佈、高斯核、核寬度 σ",
     status: "planned", estDur: "約 6 分鐘", segWord: "小節",
     sections: [
-      { t: 0, title: "棋盤格玩具模型登場" },
-      { t: 75, title: "高斯核滑動實驗" },
-      { t: 180, title: "調整核寬度 σ" },
-      { t: 285, title: "埋下生成模型的伏筆" }
+      { t: 0, title: "棋盤格登場" },
+      { t: 52.7, title: "高斯罩子滑過棋盤" },
+      { t: 190.2, title: "罩子的胖瘦" },
+      { t: 281.3, title: "倒過來放" },
+      { t: 353.9, title: "回顧與下集預告" }
     ],
     formula: R`(p_{\text{data}} * \mathcal{N}(0,\sigma^2 I))(x) = \int p_{\text{data}}(z)\,\mathcal{N}(x-z;0,\sigma^2 I)\,dz`,
     pre: [
@@ -134,9 +135,10 @@ window.UNITS = [
     tags: "逐項拆解、x 與 z、相對位移",
     status: "planned", estDur: "約 5–6 分鐘", segWord: "步驟",
     sections: [
-      { t: 0, title: "自然語言的歧義 vs. 數學的精準" },
-      { t: 90, title: "逐項拆解公式：角色各司其職" },
-      { t: 240, title: "系統化筆記思維：拒絕死背" }
+      { t: 0, title: "一句話，三種讀法" },
+      { t: 86.8, title: "從逐餐相加到積分" },
+      { t: 222.2, title: "逐項拆解：四個角色" },
+      { t: 358.8, title: "符號、時間、空間對照" }
     ],
     formula: R`(f * g)(x) = \int f(z)\, g(x - z)\, dz`,
     pre: [
