@@ -1,0 +1,666 @@
+<!doctype html>
+<html lang="zh-Hant-TW">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>卷積到機率路徑</title>
+<meta name="description" content="《從 Convolution 核心到生成式機率路徑》EP1–EP9 學習網頁：先答三題、看動畫、動手算、再答一次。">
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Crect width='64' height='64' rx='12' fill='%23151B2B'/%3E%3Ctext x='32' y='46' font-family='Georgia,serif' font-size='40' text-anchor='middle' fill='%23C792EA'%3E%E2%88%97%3C/text%3E%3C/svg%3E">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;600&family=LXGW+WenKai+TC:wght@400;700&family=Noto+Sans+TC:wght@400;500;700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/KaTeX/0.16.9/katex.min.css">
+<script defer src="https://cdnjs.cloudflare.com/ajax/libs/KaTeX/0.16.9/katex.min.js"></script>
+<script defer src="https://cdnjs.cloudflare.com/ajax/libs/KaTeX/0.16.9/contrib/auto-render.min.js"></script>
+<style>
+:root{
+  --bg:#0B0F1A; --surface:#151B2B; --surface2:#1B2236; --line:#263046; --axis:#7A8399;
+  --text:#ECEFF4; --dim:#9AA3B5; --accent:#F4D35E;
+  --x:#58C4DD; --z:#83C167; --off:#F4D35E; --g:#FF8C42; --int:#FFFFFF; --r:#C792EA;
+  --data:#B9F3C4; --noise:#7F8CFF; --t:#F15BB5; --flow:#2EC4B6; --warn:#EF6F6C; --ok:#83C167;
+  --radius:12px; --maxw:1120px;
+  --f-head:"LXGW WenKai TC","Noto Sans TC",serif;
+  --f-body:"Noto Sans TC","PingFang TC","Heiti TC",system-ui,sans-serif;
+  --f-mono:"JetBrains Mono",ui-monospace,monospace;
+  color-scheme:dark;
+}
+*{box-sizing:border-box}
+html{scroll-behavior:smooth}
+body{margin:0;background:var(--bg);color:var(--text);font-family:var(--f-body);line-height:1.75;font-size:16px;-webkit-font-smoothing:antialiased}
+a{color:var(--x);text-decoration:none}
+a:hover{text-decoration:underline}
+button{font:inherit;color:inherit;cursor:pointer}
+h1,h2,h3{font-family:var(--f-head);line-height:1.3;margin:0}
+.wrap{max-width:var(--maxw);margin:0 auto;padding:0 16px}
+.mono{font-family:var(--f-mono)}
+.dim{color:var(--dim)}
+.c-f,.c-z{color:var(--z)} .c-g{color:var(--g)} .c-r{color:var(--r)} .c-x{color:var(--x)} .c-off{color:var(--off)} .c-int{color:var(--int)}
+
+/* header */
+header.top{position:sticky;top:0;z-index:20;background:rgba(11,15,26,.88);backdrop-filter:blur(10px);border-bottom:1px solid var(--line)}
+header.top .wrap{display:flex;align-items:center;justify-content:space-between;height:56px;gap:12px}
+.brand{font-family:var(--f-head);font-weight:700;color:var(--text);font-size:18px;white-space:nowrap}
+.brand b{color:var(--r);font-family:Georgia,serif;font-weight:400;margin:0 2px}
+.brand:hover{text-decoration:none}
+nav.main{display:flex;gap:4px}
+nav.main a{color:var(--dim);padding:6px 12px;border-radius:8px;font-size:14px;white-space:nowrap}
+nav.main a:hover{color:var(--text);background:var(--surface);text-decoration:none}
+nav.main a.on{color:var(--bg);background:var(--accent)}
+
+/* buttons */
+.btn{display:inline-flex;align-items:center;gap:6px;border:1px solid var(--line);background:var(--surface);color:var(--text);padding:8px 16px;border-radius:10px;font-size:14px;font-weight:500;text-decoration:none!important;transition:border-color .15s,background .15s}
+.btn:hover{border-color:var(--axis)}
+.btn.primary{background:var(--accent);border-color:var(--accent);color:var(--bg)}
+.btn.primary:hover{filter:brightness(1.07)}
+.btn.ghost{background:transparent}
+.btn.small{padding:5px 12px;font-size:13px}
+.btn[disabled]{opacity:.45;cursor:not-allowed}
+
+/* hero */
+.hero{display:grid;grid-template-columns:1.05fr .95fr;gap:40px;align-items:center;padding:48px 0 40px}
+.eyebrow{font-family:var(--f-mono);font-size:12px;letter-spacing:.08em;color:var(--dim);text-transform:uppercase}
+.hero h1{font-size:clamp(34px,5vw,54px);margin:14px 0 16px}
+.hero h1 .hl{color:var(--accent)}
+.hero p.lead{color:var(--dim);font-size:16.5px;margin:0 0 22px;max-width:34em}
+.hero .actions{display:flex;flex-wrap:wrap;gap:10px}
+.stage{background:var(--surface);border:1px solid var(--line);border-radius:16px;padding:14px;position:relative}
+.stage canvas{width:100%;aspect-ratio:1/1;display:block;border-radius:10px;background:var(--bg)}
+.stage .tlabel{position:absolute;top:22px;left:24px;font-family:var(--f-mono);font-size:13px;color:var(--t)}
+.stage .flabel{position:absolute;bottom:92px;right:24px;font-size:15px;color:var(--text);background:rgba(11,15,26,.7);padding:2px 8px;border-radius:6px}
+.stage .ctrl{display:flex;align-items:center;gap:10px;margin-top:12px;font-size:13px;color:var(--dim)}
+.stage input[type=range]{flex:1;accent-color:var(--t)}
+.stage .ends{display:flex;justify-content:space-between;font-size:12px;color:var(--dim);margin-top:2px}
+
+/* sections */
+section.block{padding:28px 0}
+.sec-head{display:flex;align-items:baseline;justify-content:space-between;gap:12px;margin-bottom:16px;flex-wrap:wrap}
+.sec-head h2{font-size:24px;border-bottom:3px solid var(--accent);padding-bottom:2px}
+.steps{display:grid;grid-template-columns:repeat(4,1fr);gap:14px}
+.step{background:var(--surface);border:1px solid var(--line);border-radius:var(--radius);padding:16px}
+.step .k{font-family:var(--f-mono);font-size:12px;color:var(--accent)}
+.step h3{font-size:18px;margin:4px 0 6px}
+.step p{margin:0;color:var(--dim);font-size:14px;line-height:1.65}
+
+.phase{margin-bottom:28px}
+.phase-head{display:flex;gap:12px;align-items:baseline;flex-wrap:wrap;margin-bottom:12px}
+.phase-head h3{font-size:19px}
+.phase-head .rng{font-family:var(--f-mono);font-size:12px;color:var(--bg);background:var(--r);padding:1px 8px;border-radius:99px}
+.phase-head p{margin:0;color:var(--dim);font-size:14px;flex-basis:100%}
+.cards{display:grid;grid-template-columns:repeat(auto-fill,minmax(250px,1fr));gap:14px}
+.ucard{display:flex;flex-direction:column;background:var(--surface);border:1px solid var(--line);border-radius:var(--radius);overflow:hidden;color:var(--text);text-decoration:none!important;transition:transform .15s,border-color .15s}
+.ucard:hover{transform:translateY(-2px);border-color:var(--axis)}
+.thumb{position:relative;aspect-ratio:16/9;background:radial-gradient(120% 90% at 80% 10%,#232a52 0%,var(--bg) 70%);display:flex;align-items:flex-end;padding:12px;overflow:hidden}
+.thumb img{position:absolute;inset:0;width:100%;height:100%;object-fit:cover}
+.thumb .epn{font-family:var(--f-mono);font-size:42px;font-weight:600;color:rgba(236,239,244,.14);position:absolute;right:12px;top:4px}
+.thumb .badge{position:relative;font-size:12px;padding:2px 9px;border-radius:99px;background:rgba(11,15,26,.82);border:1px solid var(--line);color:var(--dim)}
+.badge.live{color:var(--bg)!important;background:var(--ok)!important;border-color:var(--ok)!important}
+.badge.done{color:var(--accent)!important;border-color:rgba(244,211,94,.5)!important}
+.thumb .dur{position:absolute;right:10px;bottom:10px;font-family:var(--f-mono);font-size:12px;background:rgba(0,0,0,.7);padding:1px 6px;border-radius:4px}
+.ucard .body{padding:12px 14px 14px;display:flex;flex-direction:column;gap:3px;flex:1}
+.ucard .meta{font-family:var(--f-mono);font-size:11.5px;color:var(--dim)}
+.ucard h4{margin:0;font-family:var(--f-head);font-size:17px;line-height:1.4}
+.ucard .tags{font-size:13px;color:var(--dim)}
+.pbar{height:4px;background:var(--line);border-radius:99px;overflow:hidden;margin-top:auto}
+.pbar i{display:block;height:100%;background:var(--r)}
+.ucard .pbar{margin-top:10px}
+
+/* unit page */
+.crumb{font-size:13px;color:var(--dim);padding:20px 0 6px}
+.crumb a{color:var(--dim)}
+.uhead{display:grid;grid-template-columns:1fr auto;gap:20px;align-items:end;padding-bottom:18px}
+.uhead .tier{font-family:var(--f-mono);font-size:12px;color:var(--accent);letter-spacing:.04em}
+.uhead h1{font-size:clamp(26px,3.6vw,38px);margin:6px 0 8px}
+.uhead .hook{color:var(--dim);margin:0}
+.uhead .prog{min-width:150px;text-align:right;font-size:13px;color:var(--dim)}
+.uhead .prog .pbar{margin-top:6px}
+.fbox{background:var(--surface);border:1px solid var(--line);border-left:3px solid var(--r);border-radius:10px;padding:6px 16px;overflow-x:auto;margin-bottom:18px}
+.tabs{display:flex;gap:4px;border-bottom:1px solid var(--line);overflow-x:auto;scrollbar-width:none}
+.tabs a{padding:10px 16px;color:var(--dim);border-bottom:2px solid transparent;white-space:nowrap;font-size:15px}
+.tabs a:hover{color:var(--text);text-decoration:none}
+.tabs a.on{color:var(--text);border-bottom-color:var(--accent)}
+.tabs a .n{font-family:var(--f-mono);font-size:11px;background:var(--line);padding:0 6px;border-radius:99px;margin-left:4px}
+.panel{padding:22px 0}
+.card{background:var(--surface);border:1px solid var(--line);border-radius:var(--radius);padding:18px 20px;margin-bottom:16px}
+.card h3{font-size:19px;margin-bottom:6px}
+.card .sub{color:var(--dim);font-size:14px;margin:0 0 12px}
+.card.locked{opacity:.6}
+ol.qs{padding-left:22px;margin:0}
+ol.qs li{margin-bottom:14px}
+textarea{width:100%;min-height:72px;margin-top:6px;background:var(--bg);border:1px solid var(--line);border-radius:8px;color:var(--text);padding:10px;font:inherit;font-size:14.5px;resize:vertical}
+textarea:focus,input:focus{outline:2px solid var(--x);outline-offset:1px}
+.row{display:flex;gap:10px;flex-wrap:wrap;align-items:center}
+.ans{background:var(--bg);border-left:3px solid var(--ok);border-radius:6px;padding:10px 12px;margin-top:8px;font-size:14.5px}
+.ans .lbl{font-size:12px;color:var(--dim);display:block}
+.cmp{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-top:6px}
+.cmp div{background:var(--bg);border-radius:6px;padding:8px 10px;font-size:13.5px;white-space:pre-wrap;color:var(--dim)}
+.cmp div b{display:block;font-size:12px;color:var(--text);font-weight:500}
+.terms{display:grid;grid-template-columns:repeat(auto-fill,minmax(210px,1fr));gap:10px}
+.term{background:var(--bg);border:1px solid var(--line);border-radius:10px;padding:12px}
+.term .zh{font-weight:700}
+.term .en{font-family:var(--f-mono);font-size:12px;color:var(--dim)}
+.term .m{color:var(--r);margin:4px 0;min-height:1.6em}
+.term .d{font-size:13.5px;color:var(--dim);line-height:1.6}
+.prac{border-top:1px solid var(--line);padding:12px 0}
+.prac:first-of-type{border-top:0}
+.prac input{width:120px;background:var(--bg);border:1px solid var(--line);border-radius:8px;color:var(--text);padding:6px 10px;font-family:var(--f-mono)}
+.fb{font-size:14px}
+.fb.ok{color:var(--ok)} .fb.no{color:var(--warn)}
+.hint{font-size:14px;color:var(--dim);background:var(--bg);border-radius:6px;padding:8px 10px;margin-top:8px}
+
+/* video */
+.player{position:relative;aspect-ratio:16/9;background:#000;border-radius:var(--radius);overflow:hidden;border:1px solid var(--line)}
+.player iframe,.player video{position:absolute;inset:0;width:100%;height:100%;border:0}
+.placeholder{position:absolute;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:8px;text-align:center;padding:20px;background:repeating-linear-gradient(135deg,var(--surface) 0 14px,#171e31 14px 28px);border:2px dashed var(--line);border-radius:var(--radius)}
+.placeholder .ic{font-size:40px;line-height:1}
+.placeholder h3{font-size:22px}
+.placeholder p{margin:0;color:var(--dim);font-size:14px;max-width:30em}
+.placeholder code{font-family:var(--f-mono);font-size:12px;background:var(--bg);padding:2px 8px;border-radius:6px;color:var(--accent)}
+.vgrid{display:grid;grid-template-columns:1fr 320px;gap:18px;align-items:start}
+.seclist{list-style:none;margin:0;padding:0}
+.seclist li button{width:100%;text-align:left;background:transparent;border:0;border-bottom:1px solid var(--line);padding:10px 4px;display:grid;grid-template-columns:62px 1fr;gap:8px;align-items:baseline}
+.seclist li button:hover:not([disabled]){background:var(--surface2)}
+.seclist li button[disabled]{cursor:default}
+.seclist .ts{font-family:var(--f-mono);font-size:13px;color:var(--x)}
+.seclist .sl{font-size:12px;color:var(--dim);display:block}
+.seclist li.cur button{background:var(--surface2)}
+.note-est{font-size:12.5px;color:var(--dim);margin-top:8px}
+
+/* notes */
+.notes .card h3{color:var(--accent);font-size:18px}
+.notes .card ul{margin:6px 0 0;padding-left:20px}
+.notes details{margin-top:6px}
+.notes summary{cursor:pointer;color:var(--x)}
+.next{display:flex;gap:10px;align-items:center;background:linear-gradient(90deg,rgba(199,146,234,.15),transparent);border:1px solid var(--line);border-radius:var(--radius);padding:14px 18px}
+
+/* flashcards */
+.flip{perspective:1200px;max-width:520px;margin:0 auto}
+.flip .inner{position:relative;height:260px;transition:transform .5s;transform-style:preserve-3d;cursor:pointer}
+.flip.on .inner{transform:rotateY(180deg)}
+.flip .face{position:absolute;inset:0;backface-visibility:hidden;background:var(--surface);border:1px solid var(--line);border-radius:16px;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:8px;padding:24px;text-align:center}
+.flip .back{transform:rotateY(180deg);border-color:var(--r)}
+.flip .face .big{font-family:var(--f-head);font-size:34px}
+.flip .face .en{font-family:var(--f-mono);color:var(--dim)}
+.flip .face .m{font-size:22px;color:var(--r)}
+.flip .face .d{color:var(--dim)}
+.flip .tag{position:absolute;top:12px;left:16px;font-size:12px;color:var(--dim)}
+.fcbar{display:flex;justify-content:center;gap:8px;margin-top:16px;flex-wrap:wrap}
+
+/* quiz */
+.qitem{border-top:1px solid var(--line);padding:16px 0}
+.qitem:first-child{border-top:0;padding-top:0}
+.qitem .qq{font-weight:500;margin-bottom:8px}
+.opts{display:grid;gap:8px}
+.opt{text-align:left;background:var(--bg);border:1px solid var(--line);border-radius:8px;padding:9px 12px;font-size:14.5px}
+.opt:hover:not([disabled]){border-color:var(--axis)}
+.opt[disabled]{cursor:default}
+.opt.right{border-color:var(--ok);background:rgba(131,193,103,.12)}
+.opt.wrong{border-color:var(--warn);background:rgba(239,111,108,.12)}
+.why{font-size:14px;color:var(--dim);margin-top:8px}
+.score{font-family:var(--f-mono);font-size:28px;color:var(--accent)}
+
+/* unit foot */
+.ufoot{display:flex;justify-content:space-between;align-items:center;gap:10px;flex-wrap:wrap;border-top:1px solid var(--line);padding:18px 0 8px}
+
+/* glossary & me */
+.search{width:100%;max-width:420px;background:var(--surface);border:1px solid var(--line);border-radius:10px;color:var(--text);padding:10px 14px;font:inherit}
+table.gl{width:100%;border-collapse:collapse;margin-top:16px;font-size:14.5px}
+table.gl th{text-align:left;font-weight:500;color:var(--dim);font-size:13px;border-bottom:1px solid var(--line);padding:8px}
+table.gl td{border-bottom:1px solid var(--line);padding:10px 8px;vertical-align:top}
+table.gl td.m{color:var(--r)}
+table.gl .ep a{font-family:var(--f-mono);font-size:12px;margin-right:6px}
+.stats{display:grid;grid-template-columns:repeat(4,1fr);gap:12px;margin-bottom:18px}
+.stat{background:var(--surface);border:1px solid var(--line);border-radius:var(--radius);padding:14px}
+.stat .v{font-family:var(--f-mono);font-size:26px;color:var(--accent)}
+.stat .l{font-size:13px;color:var(--dim)}
+.ok{color:var(--ok)}
+footer{border-top:1px solid var(--line);margin-top:40px;padding:22px 0 40px;color:var(--dim);font-size:13px}
+.katex{font-size:1.05em}
+.fbox .katex-display{margin:.6em 0}
+
+@media (max-width:860px){
+  .hero{grid-template-columns:1fr;gap:24px;padding-top:28px}
+  .steps{grid-template-columns:1fr 1fr}
+  .vgrid{grid-template-columns:1fr}
+  .uhead{grid-template-columns:1fr}
+  .uhead .prog{text-align:left}
+  .stats{grid-template-columns:1fr 1fr}
+}
+@media (max-width:520px){
+  nav.main a{padding:6px 8px}
+  .brand .long{display:none}
+  .steps{grid-template-columns:1fr}
+  .cmp{grid-template-columns:1fr}
+  table.gl .hide-s{display:none}
+}
+@media (prefers-reduced-motion:reduce){
+  *{transition:none!important;scroll-behavior:auto!important}
+}
+</style>
+</head>
+<body>
+<header class="top">
+  <div class="wrap">
+    <a class="brand" href="#home">Conv<b>∗</b>Path<span class="long"> 學習網頁</span></a>
+    <nav class="main" id="nav">
+      <a href="#home" data-nav="home">單元</a>
+      <a href="#glossary" data-nav="glossary">術語表</a>
+      <a href="#me" data-nav="me">我的學習</a>
+    </nav>
+  </div>
+</header>
+<main id="app" class="wrap"></main>
+<footer>
+  <div class="wrap">《從 Convolution 核心到生成式機率路徑》EP1–EP9 學習網頁 · 動畫以 Manim 製作，資料畫面由真實計算產生 · 進度只存在這台裝置的瀏覽器裡</div>
+</footer>
+
+<script src="videos.js"></script>
+<script src="content.js"></script>
+<script>
+(() => {
+"use strict";
+const UNITS = window.UNITS, SERIES = window.SERIES;
+const LINKS = window.VIDEO_LINKS || {};
+const app = document.getElementById("app");
+const byId = Object.fromEntries(UNITS.map(u => [u.id, u]));
+const pad2 = n => String(n).padStart(2, "0");
+const esc = s => String(s ?? "").replace(/[&<>"']/g, c => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
+const fmt = s => { s = Math.floor(s); const h = Math.floor(s / 3600), m = Math.floor(s % 3600 / 60), x = s % 60; return h ? `${h}:${pad2(m)}:${pad2(x)}` : `${m}:${pad2(x)}`; };
+
+/* ---------- storage ---------- */
+const KEY = "convpath-progress-v1";
+let S = {};
+try { S = JSON.parse(localStorage.getItem(KEY) || "{}") || {}; } catch (e) { S = {}; }
+const save = () => { try { localStorage.setItem(KEY, JSON.stringify(S)); } catch (e) {} };
+const st = id => (S[id] ||= { pre: [], preSaved: false, post: [], postSaved: false, prac: {}, quiz: {}, quizBest: null, known: [], done: false });
+
+/* ---------- video helpers ---------- */
+const ytId = v => { if (!v) return ""; v = String(v).trim(); if (/^[\w-]{11}$/.test(v)) return v; const m = v.match(/(?:v=|youtu\.be\/|embed\/|shorts\/|live\/)([\w-]{11})/); return m ? m[1] : ""; };
+const vid = u => { const L = LINKS[u.id] || {}; return { yt: ytId(L.youtube), mp4: (L.mp4 || "").trim(), noVoice: ytId(L.noVoice), dur: L.duration || u.estDur, times: Array.isArray(L.sections) && L.sections.length === u.sections.length ? L.sections : null }; };
+const hasVideo = u => { const v = vid(u); return !!(v.yt || v.mp4); };
+const secTimes = u => vid(u).times || u.sections.map(s => s.t);
+
+/* ---------- progress ---------- */
+function progress(u) {
+  const s = st(u.id);
+  const pracOk = u.practice.items.every((_, i) => s.prac[i] === true);
+  const quizDone = Object.keys(s.quiz).length === u.quiz.length;
+  const parts = [s.preSaved, pracOk, quizDone, s.postSaved, s.done];
+  return { parts, pct: Math.round(parts.filter(Boolean).length / parts.length * 100) };
+}
+
+/* ---------- math ---------- */
+function math(el) {
+  if (window.renderMathInElement) {
+    renderMathInElement(el, { delimiters: [{ left: "$$", right: "$$", display: true }, { left: "$", right: "$", display: false }], throwOnError: false });
+  }
+}
+
+/* ---------- views ---------- */
+function statusBadge(u) {
+  if (hasVideo(u)) return `<span class="badge live">▶ 可觀看</span>`;
+  if (u.status === "done") return `<span class="badge done">影片完成・連結待上架</span>`;
+  return `<span class="badge">製作中・連結預留</span>`;
+}
+function unitCard(u) {
+  const v = vid(u), p = progress(u);
+  const img = v.yt ? `<img src="https://i.ytimg.com/vi/${v.yt}/hqdefault.jpg" alt="" loading="lazy">` : "";
+  return `<a class="ucard" href="#${u.id}">
+    <div class="thumb">${img}<span class="epn">EP${pad2(u.no)}</span>${statusBadge(u)}<span class="dur">${esc(v.dur)}</span></div>
+    <div class="body">
+      <div class="meta">EP${pad2(u.no)} · ${esc(u.tier.split("｜")[0])}</div>
+      <h4>${esc(u.title)}</h4>
+      <div class="tags">${esc(u.tags)}</div>
+      <div class="pbar" title="學習進度 ${p.pct}%"><i style="width:${p.pct}%"></i></div>
+    </div></a>`;
+}
+
+function viewHome() {
+  const playlist = window.SERIES_PLAYLIST ? `<a class="btn ghost" href="${esc(window.SERIES_PLAYLIST)}" target="_blank" rel="noopener">系列播放清單 ↗</a>` : "";
+  const ready = UNITS.filter(hasVideo).length;
+  const phases = SERIES.phases.map(ph => `
+    <div class="phase">
+      <div class="phase-head"><h3>${esc(ph.name)}</h3><span class="rng">${ph.range}</span><p>${esc(ph.desc)}</p></div>
+      <div class="cards">${UNITS.filter(u => u.phase === ph.id).map(unitCard).join("")}</div>
+    </div>`).join("");
+  app.innerHTML = `
+  <section class="hero">
+    <div>
+      <div class="eyebrow">Convolution → Probability Path · 九階知識轉譯 · EP1–EP9</div>
+      <h1>從 <span class="hl">Convolution</span> 核心<br>到生成式機率路徑</h1>
+      <p class="lead">每一集先答三題，再看一支 4–7 分鐘的繁中動畫，把卷積從「消化系統」一路推到 Flow Matching 的相空間；最後動手算、做測驗，再把三題答一次。</p>
+      <div class="actions">
+        <a class="btn primary" href="#u01">從 EP1 開始</a>
+        <a class="btn" href="#glossary">術語表</a>
+        <a class="btn" href="#me">我的學習</a>
+        ${playlist}
+      </div>
+    </div>
+    <div class="stage" aria-label="棋盤格資料與高斯雜訊之間的機率路徑動畫">
+      <canvas id="heroCanvas" width="600" height="600"></canvas>
+      <div class="tlabel" id="tLabel">t = 0.00</div>
+      <div class="flabel">$x_t = t\\,z + (1-t)\\,\\varepsilon$</div>
+      <div class="ctrl"><span class="mono">t</span><input id="tSlider" type="range" min="0" max="1" step="0.01" value="0" aria-label="時間 t"><button class="btn small" id="playBtn">暫停</button></div>
+      <div class="ends"><span>t = 0　高斯雜訊</span><span>棋盤格資料　t = 1</span></div>
+    </div>
+  </section>
+
+  <section class="block">
+    <div class="sec-head"><h2>怎麼用這個網頁</h2></div>
+    <div class="steps">
+      <div class="step"><div class="k">步驟 1</div><h3>先答三題</h3><p>打開單元的學習單，不查資料，先寫下自己的答案。</p></div>
+      <div class="step"><div class="k">步驟 2</div><h3>看影片</h3><p>中英雙語字幕；點小節時間軸可以直接跳到那一段。</p></div>
+      <div class="step"><div class="k">步驟 3</div><h3>動手算、做測驗</h3><p>學習單的練習題附提示；筆記、背誦卡、測驗幫你把重點留下來。</p></div>
+      <div class="step"><div class="k">步驟 4</div><h3>再答一次</h3><p>後測和參考答案對照，弄懂了就按「標成已完成」，首頁會記下進度。</p></div>
+    </div>
+  </section>
+
+  <section class="block">
+    <div class="sec-head"><h2>學習路線</h2><span class="dim" style="font-size:14px">全 9 集 · 已上架 ${ready} 集，其餘影片連結預留中</span></div>
+    ${phases}
+  </section>`;
+  math(app);
+  startHero();
+}
+
+function viewUnit(u, tab) {
+  const s = st(u.id), p = progress(u);
+  const idx = UNITS.indexOf(u), prev = UNITS[idx - 1], next = UNITS[idx + 1];
+  const tabs = [["sheet", "學習單"], ["video", "影片"], ["notes", "筆記"], ["cards", "背誦卡", u.terms.length], ["quiz", "測驗", u.quiz.length]];
+  const body = { sheet: tabSheet, video: tabVideo, notes: tabNotes, cards: tabCards, quiz: tabQuiz }[tab](u, s);
+  app.innerHTML = `
+  <div class="crumb"><a href="#home">單元</a> / EP${pad2(u.no)}</div>
+  <div class="uhead">
+    <div>
+      <div class="tier">EP${pad2(u.no)} · ${esc(u.tier)}</div>
+      <h1>${esc(u.title)}</h1>
+      <p class="hook">${esc(u.hook)}</p>
+    </div>
+    <div class="prog">學習進度 ${p.pct}%${s.done ? ` · <span class="ok">已完成</span>` : ""}<div class="pbar"><i style="width:${p.pct}%"></i></div></div>
+  </div>
+  <div class="fbox">$$${u.formula}$$</div>
+  <nav class="tabs">${tabs.map(([k, l, n]) => `<a href="#${u.id}/${k}" class="${k === tab ? "on" : ""}">${l}${n ? `<span class="n">${n}</span>` : ""}</a>`).join("")}</nav>
+  <div class="panel">${body}</div>
+  <div class="ufoot">
+    <div>${prev ? `<a class="btn ghost" href="#${prev.id}">← EP${pad2(prev.no)}</a>` : ""}</div>
+    <button class="btn ${s.done ? "" : "primary"}" data-act="done">${s.done ? "✓ 已完成（點一下取消）" : "標成已完成"}</button>
+    <div>${next ? `<a class="btn ghost" href="#${next.id}">EP${pad2(next.no)} →</a>` : `<a class="btn ghost" href="#home">回首頁</a>`}</div>
+  </div>`;
+  math(app);
+  if (tab === "video") bindPlayer(u);
+}
+
+function tabSheet(u, s) {
+  const pre = u.pre.map((q, i) => `<li>${q.q}${s.preSaved ? `<div class="cmp"><div><b>前測</b>${esc(s.pre[i] || "（空白）")}</div></div>` : `<textarea data-pre="${i}" placeholder="先寫下你現在的想法，不查資料">${esc(s.pre[i] || "")}</textarea>`}</li>`).join("");
+  const terms = u.terms.map(t => `<div class="term"><div class="zh">${esc(t.zh)}</div><div class="en">${esc(t.en)}</div><div class="m">${t.m ? `$${t.m}$` : ""}</div><div class="d">${esc(t.d)}</div></div>`).join("");
+  const prac = u.practice.items.map((it, i) => {
+    const r = s.prac[i];
+    return `<div class="prac" data-pi="${i}">
+      <div>${i + 1}. ${it.q}</div>
+      <div class="row" style="margin-top:8px"><input type="text" inputmode="decimal" aria-label="第 ${i + 1} 題答案" data-pin="${i}" value="${r === true ? it.a : ""}"><button class="btn small" data-act="check" data-i="${i}">檢查</button>
+      <span class="fb ${r === true ? "ok" : r === false ? "no" : ""}" data-fb="${i}">${r === true ? "✓ 正確" : r === false ? "✗ 再想想" : ""}</span>
+      <button class="btn small ghost" data-act="hint" data-i="${i}">提示</button></div>
+      <div class="hint" data-hint="${i}" hidden>${it.hint}</div>
+    </div>`;
+  }).join("");
+  let post;
+  if (!s.preSaved) post = `<div class="card locked"><h3>後測：看完影片再答一次</h3><p class="sub">先完成前測，後測才會打開。</p></div>`;
+  else if (!s.postSaved) post = `<div class="card"><h3>後測：看完影片再答一次</h3><p class="sub">同樣三題。寫完存下後，會出現你的前後對照與參考答案。</p>
+      <ol class="qs">${u.pre.map((q, i) => `<li>${q.q}<textarea data-post="${i}">${esc(s.post[i] || "")}</textarea></li>`).join("")}</ol>
+      <button class="btn primary" data-act="savePost">存下後測</button></div>`;
+  else post = `<div class="card"><h3>後測與參考答案</h3><p class="sub">比較前後兩次的差異，再看參考答案。</p>
+      <ol class="qs">${u.pre.map((q, i) => `<li>${q.q}<div class="cmp"><div><b>前測</b>${esc(s.pre[i] || "（空白）")}</div><div><b>後測</b>${esc(s.post[i] || "（空白）")}</div></div><div class="ans"><span class="lbl">參考答案</span>${q.a}</div></li>`).join("")}</ol>
+      <button class="btn small ghost" data-act="redoPost">重寫後測</button></div>`;
+  return `
+  <div class="card"><h3>前測：看影片之前先答一次</h3><p class="sub">先寫下答案，不查資料。看完影片再答同樣三題，比較自己的差異。</p>
+    <ol class="qs">${pre}</ol>
+    ${s.preSaved ? `<span class="ok">✓ 前測已存下</span>` : `<button class="btn primary" data-act="savePre">存下前測</button>`}
+  </div>
+  <div class="card"><h3>這一集的 ${u.terms.length} 個詞</h3><p class="sub">這些詞已經做成背誦卡；全系列的詞可在術語表查。</p><div class="terms">${terms}</div></div>
+  <div class="card"><h3>練習：動手算一次</h3><p class="sub">${u.practice.intro}</p>${prac}</div>
+  ${post}`;
+}
+
+function tabVideo(u) {
+  const v = vid(u), times = secTimes(u), N = u.sections.length, live = !!(v.yt || v.mp4);
+  let player;
+  if (v.yt) player = `<iframe id="ytFrame" src="https://www.youtube-nocookie.com/embed/${v.yt}?rel=0&playsinline=1" title="EP${pad2(u.no)} ${esc(u.title)}" allow="accelerometer; autoplay; encrypted-media; gyroscope; picture-in-picture" allowfullscreen></iframe>`;
+  else if (v.mp4) player = `<video id="mp4" controls preload="metadata" src="${esc(v.mp4)}"></video>`;
+  else player = `<div class="placeholder"><div class="ic">🎬</div><h3>影片連結預留</h3>
+      <p>${u.status === "done" ? "這一集已經完成剪輯，正在準備上架。" : "這一集正在製作中。"}上架後這裡會直接播放，右邊的${u.segWord}時間軸也能點擊跳轉。</p>
+      <code>videos.js → ${u.id}.youtube</code></div>`;
+  const list = u.sections.map((sec, i) => `<li><button ${live ? "" : "disabled"} data-act="seek" data-t="${times[i]}"><span class="ts">${fmt(times[i])}</span><span><span class="sl">${u.segWord} ${i + 1}／${N}</span>${esc(sec.title)}</span></button></li>`).join("");
+  const links = [
+    v.yt ? `<a class="btn small" href="https://www.youtube.com/watch?v=${v.yt}" target="_blank" rel="noopener">在 YouTube 開啟 ↗</a>` : "",
+    v.noVoice ? `<a class="btn small ghost" href="https://www.youtube.com/watch?v=${v.noVoice}" target="_blank" rel="noopener">無旁白版 ↗</a>` : ""
+  ].join("");
+  return `<div class="vgrid">
+    <div><div class="player">${player}</div>${links ? `<div class="row" style="margin-top:12px">${links}</div>` : ""}</div>
+    <div class="card" style="margin:0"><h3>${u.segWord}時間軸</h3><p class="sub">片長 ${esc(v.dur)} · 共 ${N} 個${u.segWord}</p>
+      <ul class="seclist">${list}</ul>
+      ${vid(u).times ? "" : `<p class="note-est">時間依腳本預估，正式版上架後更新。</p>`}
+    </div></div>
+    <div class="card" style="margin-top:16px"><h3>看影片時注意</h3><p class="sub" style="margin:0">帶著學習單的前測三題去看；看完回到學習單做練習與後測。</p></div>`;
+}
+
+function tabNotes(u) {
+  return `<div class="notes">${u.notes.map(n => `<div class="card"><h3>${esc(n.h)}</h3><div>${n.b}</div></div>`).join("")}
+    <div class="next"><span class="mono" style="color:var(--r)">NEXT</span><span>${esc(u.next)}</span></div></div>`;
+}
+
+let fc = { id: null, i: 0, flipped: false };
+function tabCards(u, s) {
+  if (fc.id !== u.id) fc = { id: u.id, i: 0, flipped: false };
+  const t = u.terms[fc.i], known = s.known.includes(fc.i);
+  return `<p class="dim" style="text-align:center;margin-top:0">點卡片翻面 · 已記住 ${s.known.length}／${u.terms.length}</p>
+  <div class="flip ${fc.flipped ? "on" : ""}" data-act="flip" role="button" tabindex="0" aria-label="翻面">
+    <div class="inner">
+      <div class="face front"><span class="tag">${fc.i + 1}／${u.terms.length}${known ? " · ✓ 記住了" : ""}</span><div class="big">${esc(t.zh)}</div><div class="en">${esc(t.en)}</div></div>
+      <div class="face back"><span class="tag">${esc(t.zh)}</span>${t.m ? `<div class="m">$${t.m}$</div>` : ""}<div class="d">${esc(t.d)}</div></div>
+    </div>
+  </div>
+  <div class="fcbar">
+    <button class="btn" data-act="fcPrev">← 上一張</button>
+    <button class="btn" data-act="fcNo">還不熟</button>
+    <button class="btn primary" data-act="fcYes">記住了</button>
+    <button class="btn" data-act="fcNext">下一張 →</button>
+  </div>`;
+}
+
+function tabQuiz(u, s) {
+  const answered = Object.keys(s.quiz).length;
+  const correct = u.quiz.filter((q, i) => s.quiz[i] === q.a).length;
+  const items = u.quiz.map((q, i) => {
+    const a = s.quiz[i], done = a !== undefined;
+    return `<div class="qitem"><div class="qq">${i + 1}. ${q.q}</div><div class="opts">${q.o.map((o, j) => {
+      const cls = done ? (j === q.a ? "right" : j === a ? "wrong" : "") : "";
+      return `<button class="opt ${cls}" ${done ? "disabled" : ""} data-act="ans" data-q="${i}" data-o="${j}">${String.fromCharCode(65 + j)}. ${o}</button>`;
+    }).join("")}</div>${done ? `<div class="why">${a === q.a ? "✓ 答對了。" : "✗ 正確答案是 " + String.fromCharCode(65 + q.a) + "。"}${q.w}</div>` : ""}</div>`;
+  }).join("");
+  const summary = answered === u.quiz.length
+    ? `<div class="row" style="justify-content:space-between"><div><div class="score">${correct}／${u.quiz.length}</div><span class="dim">最佳紀錄 ${s.quizBest ?? correct}／${u.quiz.length}</span></div><button class="btn" data-act="quizReset">重做一次</button></div>`
+    : `<span class="dim">已作答 ${answered}／${u.quiz.length}</span>`;
+  return `<div class="card">${summary}</div><div class="card">${items}</div>`;
+}
+
+function viewGlossary(q = "") {
+  const map = new Map();
+  UNITS.forEach(u => u.terms.forEach(t => {
+    const k = (t.en || t.zh).toLowerCase();
+    if (!map.has(k)) map.set(k, { ...t, eps: [] });
+    map.get(k).eps.push(u);
+  }));
+  const rows = [...map.values()];
+  app.innerHTML = `
+  <div class="crumb"><a href="#home">首頁</a> / 術語表</div>
+  <div class="sec-head"><h2>術語表</h2><span class="dim" style="font-size:14px">全系列 ${rows.length} 個詞</span></div>
+  <input class="search" id="gq" type="search" placeholder="搜尋中文、英文或描述…" value="${esc(q)}" aria-label="搜尋術語">
+  <table class="gl"><thead><tr><th>中文</th><th>English</th><th class="hide-s">符號</th><th>意思</th><th>出現</th></tr></thead>
+  <tbody>${rows.map(t => `<tr data-s="${esc((t.zh + " " + t.en + " " + t.d).toLowerCase())}"><td><b>${esc(t.zh)}</b></td><td class="mono" style="font-size:13px">${esc(t.en)}</td><td class="m hide-s">${t.m ? `$${t.m}$` : ""}</td><td class="dim">${esc(t.d)}</td><td class="ep">${t.eps.map(u => `<a href="#${u.id}">EP${pad2(u.no)}</a>`).join("")}</td></tr>`).join("")}</tbody></table>`;
+  math(app);
+  const inp = document.getElementById("gq");
+  const filt = () => { const v = inp.value.trim().toLowerCase(); app.querySelectorAll("tbody tr").forEach(tr => tr.hidden = v && !tr.dataset.s.includes(v)); };
+  inp.addEventListener("input", filt); filt();
+}
+
+function viewMe() {
+  const done = UNITS.filter(u => st(u.id).done).length;
+  const quizN = UNITS.filter(u => Object.keys(st(u.id).quiz).length === u.quiz.length).length;
+  const cardsK = UNITS.reduce((a, u) => a + st(u.id).known.length, 0), cardsT = UNITS.reduce((a, u) => a + u.terms.length, 0);
+  const avg = Math.round(UNITS.reduce((a, u) => a + progress(u).pct, 0) / UNITS.length);
+  const ck = b => b ? `<span class="ok">✓</span>` : `<span class="dim">—</span>`;
+  app.innerHTML = `
+  <div class="crumb"><a href="#home">首頁</a> / 我的學習</div>
+  <div class="sec-head"><h2>我的學習</h2></div>
+  <div class="stats">
+    <div class="stat"><div class="v">${avg}%</div><div class="l">整體進度</div></div>
+    <div class="stat"><div class="v">${done}／9</div><div class="l">已完成單元</div></div>
+    <div class="stat"><div class="v">${quizN}／9</div><div class="l">測驗做完</div></div>
+    <div class="stat"><div class="v">${cardsK}／${cardsT}</div><div class="l">背誦卡記住</div></div>
+  </div>
+  <div class="card" style="overflow-x:auto"><table class="gl" style="margin:0"><thead><tr><th>單元</th><th>前測</th><th>練習</th><th>測驗</th><th>後測</th><th>完成</th></tr></thead><tbody>
+  ${UNITS.map(u => { const s = st(u.id), p = progress(u); const qz = Object.keys(s.quiz).length === u.quiz.length ? `${u.quiz.filter((q, i) => s.quiz[i] === q.a).length}／${u.quiz.length}` : "—";
+    return `<tr><td><a href="#${u.id}">EP${pad2(u.no)}</a> <span class="dim">${esc(u.title)}</span></td><td>${ck(p.parts[0])}</td><td>${ck(p.parts[1])}</td><td class="mono">${qz}</td><td>${ck(p.parts[3])}</td><td>${ck(p.parts[4])}</td></tr>`; }).join("")}
+  </tbody></table></div>
+  <p class="dim" style="font-size:13px">進度只存在這台裝置的瀏覽器裡；換裝置或清除網站資料就會重來。</p>
+  <button class="btn" data-act="resetAll">清除全部進度</button>`;
+}
+
+/* ---------- player ---------- */
+function bindPlayer(u) {
+  const v = vid(u);
+  if (v.mp4) {
+    const el = document.getElementById("mp4"), times = secTimes(u);
+    el.addEventListener("timeupdate", () => {
+      let k = 0; times.forEach((t, i) => { if (el.currentTime >= t) k = i; });
+      app.querySelectorAll(".seclist li").forEach((li, i) => li.classList.toggle("cur", i === k));
+    });
+  }
+}
+function seek(u, t) {
+  const v = vid(u);
+  if (v.yt) { const f = document.getElementById("ytFrame"); f.src = `https://www.youtube-nocookie.com/embed/${v.yt}?rel=0&playsinline=1&autoplay=1&start=${Math.floor(t)}`; }
+  else if (v.mp4) { const el = document.getElementById("mp4"); el.currentTime = t; el.play().catch(() => {}); }
+  document.querySelector(".player").scrollIntoView({ behavior: "smooth", block: "nearest" });
+}
+
+/* ---------- hero animation: x_t = t z + (1-t) ε ---------- */
+let heroRAF = 0;
+function startHero() {
+  cancelAnimationFrame(heroRAF);
+  const cv = document.getElementById("heroCanvas"); if (!cv) return;
+  const ctx = cv.getContext("2d");
+  let seed = 20261112; const rnd = () => { seed |= 0; seed = seed + 0x6D2B79F5 | 0; let t = Math.imul(seed ^ seed >>> 15, 1 | seed); t = t + Math.imul(t ^ t >>> 7, 61 | t) ^ t; return ((t ^ t >>> 14) >>> 0) / 4294967296; };
+  const gauss = () => Math.sqrt(-2 * Math.log(1 - rnd())) * Math.cos(2 * Math.PI * rnd());
+  const N = 2600, P = [];
+  while (P.length < N) { const x = rnd() * 4 - 2, y = rnd() * 4 - 2; if ((Math.floor(x + 2) + Math.floor(y + 2)) % 2 === 0) P.push([x, y, gauss() * .9, gauss() * .9]); }
+  const slider = document.getElementById("tSlider"), btn = document.getElementById("playBtn"), lab = document.getElementById("tLabel");
+  const reduce = matchMedia("(prefers-reduced-motion: reduce)").matches;
+  let playing = !reduce, phase = 0, t = reduce ? 1 : 0, last = performance.now();
+  btn.textContent = playing ? "暫停" : "播放";
+  slider.addEventListener("input", () => { playing = false; btn.textContent = "播放"; t = +slider.value; });
+  btn.addEventListener("click", () => { playing = !playing; btn.textContent = playing ? "暫停" : "播放"; phase = Math.acos(1 - 2 * t); last = performance.now(); });
+  const c0 = [127, 140, 255], c1 = [185, 243, 196];
+  function draw(now) {
+    if (!document.body.contains(cv)) return;
+    const dpr = Math.min(window.devicePixelRatio || 1, 2), W = cv.clientWidth;
+    if (cv.width !== Math.round(W * dpr)) { cv.width = cv.height = Math.round(W * dpr); }
+    if (playing) {
+      phase += (now - last) / 1000 * 0.55; // 約 11 秒一個來回
+      const raw = (1 - Math.cos(phase)) / 2;
+      t = Math.min(1, Math.max(0, (raw - .06) / .88)); // 兩端停留一下
+      slider.value = t.toFixed(2);
+    }
+    last = now;
+    const S = cv.width, sc = S / 6.2, cx = S / 2, cy = S / 2;
+    ctx.fillStyle = "#0B0F1A"; ctx.fillRect(0, 0, S, S);
+    ctx.strokeStyle = `rgba(122,131,153,${0.06 + 0.16 * t})`; ctx.lineWidth = 1 * dpr;
+    for (let i = 0; i < 4; i++) for (let j = 0; j < 4; j++) if ((i + j) % 2 === 0) ctx.strokeRect(cx + (i - 2) * sc, cy + (j - 2) * sc, sc, sc);
+    const col = c0.map((a, k) => Math.round(a + (c1[k] - a) * t));
+    ctx.fillStyle = `rgba(${col[0]},${col[1]},${col[2]},0.85)`;
+    const r = 1.35 * dpr;
+    for (const [zx, zy, ex, ey] of P) {
+      const x = t * zx + (1 - t) * ex, y = t * zy + (1 - t) * ey;
+      ctx.fillRect(cx + x * sc - r / 2, cy - y * sc - r / 2, r, r);
+    }
+    lab.textContent = "t = " + t.toFixed(2);
+    heroRAF = requestAnimationFrame(draw);
+  }
+  heroRAF = requestAnimationFrame(draw);
+}
+
+/* ---------- router ---------- */
+let cur = { view: "", unit: null, tab: "" };
+function route() {
+  const h = location.hash.replace(/^#/, "") || "home";
+  const [a, b] = h.split("/");
+  document.querySelectorAll("#nav a").forEach(n => n.classList.toggle("on", n.dataset.nav === (byId[a] ? "home" : a)));
+  if (byId[a]) {
+    const tab = ["sheet", "video", "notes", "cards", "quiz"].includes(b) ? b : "sheet";
+    const same = cur.unit === a;
+    cur = { view: "unit", unit: a, tab };
+    viewUnit(byId[a], tab);
+    document.title = `EP${pad2(byId[a].no)} ${byId[a].title}｜卷積到機率路徑`;
+    if (!same) window.scrollTo(0, 0);
+  } else if (a === "glossary") { cur = { view: a }; viewGlossary(); document.title = "術語表｜卷積到機率路徑"; window.scrollTo(0, 0); }
+  else if (a === "me") { cur = { view: a }; viewMe(); document.title = "我的學習｜卷積到機率路徑"; window.scrollTo(0, 0); }
+  else { cur = { view: "home" }; viewHome(); document.title = "卷積到機率路徑"; window.scrollTo(0, 0); }
+}
+const rerender = () => { const y = scrollY; viewUnit(byId[cur.unit], cur.tab); window.scrollTo(0, y); };
+
+/* ---------- actions ---------- */
+app.addEventListener("click", e => {
+  const el = e.target.closest("[data-act]"); if (!el) return;
+  const act = el.dataset.act, u = byId[cur.unit], s = u ? st(u.id) : null;
+  switch (act) {
+    case "savePre":
+      s.pre = u.pre.map((_, i) => (app.querySelector(`[data-pre="${i}"]`)?.value || "").trim());
+      if (s.pre.every(x => !x) && !confirm("三題都是空白，確定要存下前測嗎？")) return;
+      s.preSaved = true; save(); rerender(); break;
+    case "savePost":
+      s.post = u.pre.map((_, i) => (app.querySelector(`[data-post="${i}"]`)?.value || "").trim());
+      s.postSaved = true; save(); rerender(); break;
+    case "redoPost": s.postSaved = false; save(); rerender(); break;
+    case "check": {
+      const i = +el.dataset.i, it = u.practice.items[i];
+      const raw = (app.querySelector(`[data-pin="${i}"]`).value || "").replace(/，/g, ".").replace(/[^\d.\-\/eE]/g, "");
+      let v = raw.includes("/") ? raw.split("/").reduce((a, b) => a / b) : parseFloat(raw);
+      const fb = app.querySelector(`[data-fb="${i}"]`);
+      if (!isFinite(v)) { fb.className = "fb no"; fb.textContent = "請輸入數字"; return; }
+      const ok = Math.abs(v - it.a) <= it.tol;
+      s.prac[i] = ok; save();
+      fb.className = "fb " + (ok ? "ok" : "no"); fb.textContent = ok ? "✓ 正確" : "✗ 再想想（可以看提示）";
+      break;
+    }
+    case "hint": { const h = app.querySelector(`[data-hint="${el.dataset.i}"]`); h.hidden = !h.hidden; break; }
+    case "done": s.done = !s.done; save(); rerender(); break;
+    case "seek": seek(u, +el.dataset.t); break;
+    case "flip": fc.flipped = !fc.flipped; el.classList.toggle("on", fc.flipped); break;
+    case "fcPrev": fc.i = (fc.i - 1 + u.terms.length) % u.terms.length; fc.flipped = false; rerender(); break;
+    case "fcNext": fc.i = (fc.i + 1) % u.terms.length; fc.flipped = false; rerender(); break;
+    case "fcYes": if (!s.known.includes(fc.i)) s.known.push(fc.i); save(); fc.i = (fc.i + 1) % u.terms.length; fc.flipped = false; rerender(); break;
+    case "fcNo": s.known = s.known.filter(k => k !== fc.i); save(); fc.i = (fc.i + 1) % u.terms.length; fc.flipped = false; rerender(); break;
+    case "ans": {
+      s.quiz[+el.dataset.q] = +el.dataset.o;
+      if (Object.keys(s.quiz).length === u.quiz.length) { const c = u.quiz.filter((q, i) => s.quiz[i] === q.a).length; s.quizBest = Math.max(s.quizBest ?? 0, c); }
+      save(); rerender(); break;
+    }
+    case "quizReset": s.quiz = {}; save(); rerender(); break;
+    case "resetAll": if (confirm("確定要清除全部九集的學習進度嗎？這個動作無法復原。")) { S = {}; save(); viewMe(); } break;
+  }
+});
+app.addEventListener("keydown", e => {
+  if (e.key === "Enter" && e.target.matches("[data-pin]")) app.querySelector(`[data-act="check"][data-i="${e.target.dataset.pin}"]`).click();
+  if ((e.key === "Enter" || e.key === " ") && e.target.matches(".flip")) { e.preventDefault(); e.target.click(); }
+});
+app.addEventListener("input", e => { // 草稿即時保存
+  const u = byId[cur.unit]; if (!u) return; const s = st(u.id);
+  if (e.target.dataset.pre !== undefined) { s.pre[+e.target.dataset.pre] = e.target.value; save(); }
+  if (e.target.dataset.post !== undefined) { s.post[+e.target.dataset.post] = e.target.value; save(); }
+});
+
+window.addEventListener("hashchange", route);
+if (document.readyState === "complete") route(); else window.addEventListener("load", route);
+})();
+</script>
+</body>
+</html>
