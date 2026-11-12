@@ -300,9 +300,12 @@ window.UNITS = [
     tags: "邊際化、圖模型、α_t 縮放",
     status: "planned", estDur: "約 5–6 分鐘", segWord: "小節",
     sections: [
-      { t: 0, title: "解答 EP5：Conditional vs. Marginal" },
-      { t: 105, title: "圖模型與「忽略起點」的直覺" },
-      { t: 225, title: "數學式結合：邊際路徑即卷積" }
+      { t: 0, title: "揭曉：單一資料點不需要加總" },
+      { t: 98.7, title: "從一點到成千上萬點" },
+      { t: 161.8, title: "圖模型：抽樣，然後忘記來源" },
+      { t: 224.9, title: "寫成公式" },
+      { t: 293.2, title: "先縮小，再模糊" },
+      { t: 386.7, title: "總結與預告" }
     ],
     formula: R`p_t(x) = \int p_t(x\mid z)\, p_{\text{data}}(z)\, dz`,
     pre: [
@@ -354,8 +357,10 @@ window.UNITS = [
     tags: "時間拉桿、端點條件、Dirac",
     status: "planned", estDur: "約 4–5 分鐘", segWord: "小節",
     sections: [
-      { t: 0, title: "時間拉桿：t = 0 的起點狀態" },
-      { t: 120, title: "中間過程與 t = 1 的 Dirac 終點" }
+      { t: 0, title: "起點 t = 0：資料被乘上零" },
+      { t: 105.4, title: "推動拉桿：中心走向 z、迷霧變薄" },
+      { t: 199.7, title: "終點 t = 1：Dirac 與 σ_min" },
+      { t: 305.8, title: "兩個端點對照與下集預告" }
     ],
     formula: R`p_t(x\mid z)=\mathcal{N}(x;\ \alpha_t z,\ \sigma_t^2 I),\quad \alpha_0=0,\ \sigma_0=1,\ \alpha_1=1,\ \sigma_1=0`,
     pre: [
