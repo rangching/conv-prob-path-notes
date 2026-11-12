@@ -15,7 +15,7 @@
 window.SERIES_PLAYLIST = ""; // 系列播放清單網址，留空則不顯示按鈕
 
 window.VIDEO_LINKS = {
-  u01: { youtube: "", mp4: "", duration: "6:35", sections: [0, 53.7, 217.7, 310.7], noVoice: "" },
+  u01: { youtube: "https://youtu.be/XWP6peM5Lls", mp4: "", duration: "6:35", sections: [0, 53.7, 217.7, 310.7], noVoice: "" },
   u02: { youtube: "", mp4: "", duration: "", sections: null, noVoice: "" },
   u03: { youtube: "", mp4: "", duration: "", sections: null, noVoice: "" },
   u04: { youtube: "", mp4: "", duration: "", sections: null, noVoice: "" },
